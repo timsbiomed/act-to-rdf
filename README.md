@@ -24,6 +24,8 @@ The conversion is based on the following ontology files:
 * ACT_MED_ALPHA_V2_121318.zip
 * ACT_MED_VA_V2_092818.zip
 
+These files can be downloaded w/ the [data/download.sh]() script
+
 In each file, the columns mapped to the triples
 
 C_FULLNAME: the hierarchy is mapped to skos:broader
@@ -32,8 +34,9 @@ C_NAME: skos:prefLabel
 
 Run act2rdf.py to convert the ACT ontologies to RDF (Turtle).
 
-'''
-pipenv run python act2rdf.act2rdf
-''' 
+```bash
+pipenv install
+pipenv run python act2rdf/act2rdf.py
+```
 
 
