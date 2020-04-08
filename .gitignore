@@ -129,4 +129,7 @@ dmypy.json
 .pyre/
 
 # Zip files in data directory
-data/*.zip
+/data/*.zip
+
+# Pycharm
+.idea
