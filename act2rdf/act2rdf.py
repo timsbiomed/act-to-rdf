@@ -1,13 +1,34 @@
-from csv import DictReader
-from io import TextIOWrapper
-import sys
-from rdflib import Namespace, Graph, Literal, RDF, OWL
-from rdflib.namespace import SKOS, DCTERMS
 import itertools
 import os
+from csv import DictReader
+from io import TextIOWrapper
+from typing import Iterator, Tuple
 from zipfile import ZipFile
 
+from rdflib import Namespace, Graph, Literal, RDF, OWL
+from rdflib.namespace import SKOS, DCTERMS
+
+# TODO: Determine the canonical URI for the ACT
 namespaces = {
+    'ACT': Namespace('https://ncatswiki.dbmi.pitt.edu/acts/ACT/'),
+    'CPT4': Namespace('http://purl.bioontology.org/ontology/CPT/'),
+    'HCPCS': Namespace('http://purl.bioontology.org/ontology/HCPCS/'),
+    'ICD10CM': Namespace('http://purl.bioontology.org/ontology/ICD10CM/'),
+    'ICD10PCS': Namespace('http://purl.bioontology.org/ontology/ICD10PCS/'),
+    'ICD9CM': Namespace('http://purl.bioontology.org/ontology/ICD9CM/'),
+    'RXNORM': Namespace('http://www.nlm.nih.gov/research/umls/rxnorm/'),
+    'NDC': Namespace('https://identifiers.org/ndc:'),
+    'NUI': Namespace('http://example.org/NUI/'),
+    'ICD9PROC': Namespace('http://example.org/ICD9PROC/'),
+    'LOINC': Namespace('http://purl.bioontology.org/ontology/LNC/'),
+    'OWL': Namespace('http://www.w3.org/2002/07/owl#')
+}
+
+known_services = {
+
+}
+
+bioportal_urls = {
     'ACT': Namespace('http://example.org/ACT/'),
     'CPT4': Namespace('http://purl.bioontology.org/ontology/CPT/'),
     'HCPCS': Namespace('http://purl.bioontology.org/ontology/HCPCS/'),
@@ -18,16 +39,26 @@ namespaces = {
     'NDC': Namespace('https://identifiers.org/ndc:'),
     'NUI': Namespace('http://example.org/NUI/'),
     'ICD9PROC': Namespace('http://example.org/ICD9PROC/'),
-    'LOINC': Namespace('http://purl.bioontology.org/ontology/LNC/')
+    'LOINC': Namespace('http://purl.bioontology.org/ontology/LNC/'),
+    'OWL': Namespace('http://www.w3.org/2002/07/owl#')
 }
 
-def pairwise(iterable):
+fhir_ts_urls = {}
+
+rdf_urls = {}
+
+other_urls = {
+    'RXNORM': 'https://rxnav.nlm.nih.gov/REST/rxcui/{cid}/properties'
+}
+
+
+def pairwise(iterable) -> Iterator[Tuple]:
     a, b = itertools.tee(iterable)
     next(b, None)
     return zip(a, b)
 
 
-def read_rdf(reader: DictReader, g: Graph):
+def read_rdf(reader: DictReader, g: Graph) -> Graph:
     """
     Read ACT ontology from reader and convert to triples to store in a graph
     :type g: rdflib.Graph

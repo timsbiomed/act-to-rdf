@@ -6,7 +6,9 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-rdflib = "*"
+union = "*"
+rdflib = "==5.0.0rc1"
+i2b2model = "==0.2.6"
 
 [requires]
 python_version = "3.7"
