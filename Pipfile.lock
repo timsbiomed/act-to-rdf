@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "9b62fe3f6651b576da4180e0cba0770bd2324db3f24b24c1682037040ffeb7f7"
+            "sha256": "0447d952424ef04bf066eed4821934ea755c81fa9c75298e69b7b41d1c751334"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -57,6 +57,21 @@
                 "sha256:aa4d33c06640f5352aca96e4b81afd8ab3b47337cc12089822d6f322ac772c81"
             ],
             "version": "==0.6.0"
+        },
+        "neurdflib": {
+            "hashes": [
+                "sha256:b542bf337d3ffea111e8fe35ceb35c85172949e42c0597acc12820f7f27344d8",
+                "sha256:d34493cee15029ff5db16157429585ff863ba5542675a4d8a94a0da1bc6e3a50"
+            ],
+            "version": "==5.0.1"
+        },
+        "neurdflib-jsonld": {
+            "hashes": [
+                "sha256:790073ba7a84a901460d25ec062fc20477ac9683a89f56475aaa6eaa72df0374",
+                "sha256:fca13b1be3adafc42ff4fb77ca5a15a730a7b7ea9a63c8c02f75d4d1d68f4f21"
+            ],
+            "index": "pypi",
+            "version": "==0.4.1"
         },
         "psycopg2-binary": {
             "hashes": [

@@ -9,6 +9,7 @@ verify_ssl = true
 union = "*"
 rdflib = "==5.0.0rc1"
 i2b2model = "==0.2.6"
+rdflib-jsonld = "*"
 
 [requires]
 python_version = "3.7"

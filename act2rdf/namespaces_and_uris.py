@@ -1,6 +1,7 @@
 from typing import Dict
 
-from rdflib import Namespace, URIRef, OWL, SKOS
+from rdflib import Namespace, URIRef, OWL
+from rdflib.namespace import SKOS
 
 from act2rdf.accessinfo import NamespaceInfo, AccessInfo, ServiceType
 

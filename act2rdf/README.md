@@ -70,3 +70,24 @@ Note: We may want to consider mapping the namespace of `{e}` to lower case.
 
 ## URI assignment
 Discuss the `schemes` table
+
+## Issues
+### Fabricated codes
+Currently there is no way to distinguish official concept codes from groupers.  As an example, there is no way to 
+differentiate the following:
+
+| ACT Code | "ICD-10" code | Visual Attributes |
+| --- | --- | --- |
+| A20098492  | ICD10CM:ICD10CM Diagnosis | FA |
+| A18905737 | ICD10CM:A00-B99 | FA |
+| A17798915 | ICD10CM:A17 | FA |
+| A17798917 | ICD10CM:A17.8 | FA |
+| A17798919 | ICD10CM:A17.81 | LA |
+
+The first two entries above clearly are *not* valid ICD-10 codes, and the final entry (A17.81) clearly is.  The remaining
+two entries, (A17 and A17.8) can be coded in certain situations and not others.  This has not become an issue in i2b2
+nodes because (theoretically), no one will use the first two codes.  At worst it will only result in slightly inefficient
+queries.
+
+For value set definition purposes, however, we DO need to distinguish these elements.  In the short term, we are just
+going to add a code predicate that tests the code to determine what does and does not belong.
