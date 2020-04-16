@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 import sys
-from typing import List, Tuple, Optional, Dict, Callable
+from typing import List, Tuple, Optional, Dict
 
 from i2b2model.metadata.i2b2ontology import OntologyEntry
 from i2b2model.metadata.i2b2ontologyvisualattributes import VisualAttributes
@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker, Session
 
 from act2rdf import DATA_DIR
 from namespaces_and_uris import code_to_uri, namespaces
-from ontology.codesystem_membership import icd10cm_member
+from ontology.codesystem_membership import is_valid_code
 
 ACT = namespaces['ACT']
 ISO = namespaces['iso-11179']
@@ -27,24 +27,12 @@ ISO = namespaces['iso-11179']
 EXPLICIT_MEMBERS = True         # True means compute value set members.  False means leave implicit
 COMPUTE_MEMBERS = True          # True means compute closure in graph, false means use LIKE queries
 TABLE_PREFIX = 'ACT_'           # Only process tables that start with this prefix
+SKIP_TABLES = ['ACT_DEMO']
 FIRST_MATCH = False             # True means process first matching table, False means all matching tables
 NUM_CODES = 0                   # Number of codes to process (debug). 0 means all
 OUTPUT_DIR = DATA_DIR
 DEBUG = False                   # Emit diagnostic statements
 
-code_validators: Dict[str, Callable[[str], bool]] = {'ICD10CM': icd10cm_member}
-
-
-def isvalid(code) -> bool:
-    """
-    Determine whether code is a legitimate entry
-    :param code: code system/code combo
-    :return:
-    """
-    if ':' in code:
-        system, code = code.split(':', 1)
-        return code_validators[system](code) if system in code_validators else True
-    return True
 
 # Unique key to pre-built query
 class QueryKey:
@@ -73,7 +61,8 @@ class QueryTexts:
         self.crc_session = sessionmaker(bind=tables.crc_engine)()
 
     def get_query(self, te: OntologyEntry, dim: str, oper: str) -> Tuple[Connection, text]:
-        return self.tables[te.c_tablename.lower()], self.query_tables.setdefault(QueryKey(te), self._gentext(te).format(dim=dim, oper=oper))
+        return self.tables[te.c_tablename.lower()], \
+               self.query_tables.setdefault(QueryKey(te), self._gentext(te).format(dim=dim, oper=oper))
 
     def _gentext(self, te: OntologyEntry) -> str:
         table = self.tables[te.c_tablename.lower()]
@@ -132,10 +121,10 @@ def evaluate_ontology_entry(queries: QueryTexts, te: OntologyEntry, cid: URIRef,
             g.add((cid, RDF.type, ISO.EnumeratedConceptualDomain))
         if not COMPUTE_MEMBERS and EXPLICIT_MEMBERS:
             for code in codes:
-                if isvalid(code):
+                if is_valid_code(code):
                     g.add((cid, ISO['enumeratedConceptualDomain.hasMember'], code_to_uri(code)))
         for exact in exacts:
-            if isvalid(exact):
+            if is_valid_code(exact):
                 g.add((cid, SKOS.exactMatch, code_to_uri(exact)))
 
 
@@ -152,7 +141,7 @@ def proc_ontology_table(queries: QueryTexts, table_name: str, concept_scheme: UR
     te: OntologyEntry
     table = queries.tables[table_name.lower()]
     nentries = 0
-    for te in queries.ont_session.query(table).order_by(table.c.c_fullname).all():
+    for te in queries.ont_session.query(table).all():
         parent, ccode = proc_fullname(basename, te.c_fullname)
         if ccode:
             cid = ACT[ccode]
@@ -178,7 +167,7 @@ def proc_ontology_table(queries: QueryTexts, table_name: str, concept_scheme: UR
     return nentries
 
 
-def proc_table_access_row(queries: QueryTexts, ta: TableAccess, g: Dataset) -> Optional[int]:
+def proc_table_access_row(queries: QueryTexts, ta: TableAccess, g: Dataset) -> int:
     """
     Process a table_access entry
     :param queries: query cache and tables access
@@ -186,17 +175,13 @@ def proc_table_access_row(queries: QueryTexts, ta: TableAccess, g: Dataset) -> O
     :param g: target Graph
     :return: URI of value set to be represented
     """
-    if not ta.c_fullname.startswith('\\ACT\\'):
-        print(" skipped")
-        return None
-    else:
-        name_parts = ta.c_fullname.split('\\')[2:-1]    # Skip leading and trailing slashes
-        concept_scheme = ACT['/'.join(name_parts[:2])]
-        concept_scheme_version = ACT['/'.join(name_parts[:3])]
-        g.add((concept_scheme, RDF.type, SKOS.ConceptScheme))
-        g.add((concept_scheme, RDF.type, OWL.Ontology))
-        g.add((concept_scheme, OWL.versionIRI, concept_scheme_version))
-        return proc_ontology_table(queries, ta.c_table_name, concept_scheme, ta.c_fullname, g)
+    name_parts = ta.c_fullname.split('\\')[2:-1]    # Skip leading and trailing slashes
+    concept_scheme = ACT['/'.join(name_parts[:2])]
+    concept_scheme_version = ACT['/'.join(name_parts[:3])]
+    g.add((concept_scheme, RDF.type, SKOS.ConceptScheme))
+    g.add((concept_scheme, RDF.type, OWL.Ontology))
+    g.add((concept_scheme, OWL.versionIRI, concept_scheme_version))
+    return proc_ontology_table(queries, ta.c_table_name, concept_scheme, ta.c_fullname, g)
 
 
 def parse_args(argv: List[str]) -> Optional[argparse.Namespace]:
@@ -215,6 +200,7 @@ def dump_as_rdf(g: Dataset, table_name: str) -> bool:
     """
     Dump the contents of Graph g in RDF turtle
     :param g: Dataset to dump
+    :param table_name: name of the base table
     :return: success indicator
     """
     # Propagate the mapped concepts up the tree
@@ -253,6 +239,9 @@ def proc_table_access_table(opts: argparse.Namespace, g: Dataset) -> int:
     e: TableAccess
     for e in q.all():
         print(f"{e.c_table_cd}", end='')
+        if not e.c_table_cd.startswith(TABLE_PREFIX) or e.c_table_cd in SKIP_TABLES:
+            print(" skipped")
+            continue
         nelements = proc_table_access_row(queries, e, g)
         if nelements:
             print(f" {nelements} processed")
