@@ -28,7 +28,7 @@ EXPLICIT_MEMBERS = True         # True means compute value set members.  False m
 COMPUTE_MEMBERS = True          # True means compute closure in graph, false means use LIKE queries
 TABLE_PREFIX = 'ACT_'           # Only process tables that start with this prefix
 SKIP_TABLES = ['ACT_DEMO']
-FIRST_MATCH = False             # True means process first matching table, False means all matching tables
+ONE_TABLE = False               # True means process first matching table, False means all matching tables
 NUM_CODES = 0                   # Number of codes to process (debug). 0 means all
 OUTPUT_DIR = DATA_DIR
 DEBUG = False                   # Emit diagnostic statements
@@ -141,20 +141,21 @@ def proc_ontology_table(queries: QueryTexts, table_name: str, concept_scheme: UR
     te: OntologyEntry
     table = queries.tables[table_name.lower()]
     nentries = 0
-    for te in queries.ont_session.query(table).all():
+    q = queries.ont_session.query(table) if not NUM_CODES else queries.ont_session.query(table).order_by(table.c.c_fullname)
+    for te in q.all():
         parent, ccode = proc_fullname(basename, te.c_fullname)
         if ccode:
             cid = ACT[ccode]
             g.add((cid, RDF.type, SKOS.Concept))
             g.add((cid, SKOS.inScheme, concept_scheme))
+            g.add((cid, SKOS.prefLabel, Literal(te.c_name)))
+            if te.c_basecode:
+                g.add((cid, SKOS.editorialNote, Literal(te.c_basecode)))
+            if te.c_tooltip:
+                tip = ', '.join([e for e in te.c_tooltip.split('\\') if e])
+                g.add((cid, SKOS.scopeNote, Literal(tip)))
             if parent:
                 g.add((cid, SKOS.broader, ACT[parent]))
-                g.add((cid, SKOS.prefLabel, Literal(te.c_name)))
-                if te.c_basecode:
-                    g.add((cid, SKOS.editorialNote, Literal(te.c_basecode)))
-                if te.c_tooltip:
-                    tip = ', '.join([e for e in te.c_tooltip.split('\\') if e])
-                    g.add((cid, SKOS.scopeNote, Literal(tip)))
             else:
                 g.add((concept_scheme, SKOS.hasTopConcept, cid))
             # Some sort of PyCharm debbugger issue here...
@@ -222,6 +223,7 @@ def dump_as_rdf(g: Dataset, table_name: str) -> bool:
     outfile = os.path.join(DATA_DIR, table_name + '.ttl')
     print(f"Saving output to {outfile}")
     g.serialize(outfile, format='turtle')
+    print(f"{len(g)} triples written")
     return True
 
 
@@ -244,9 +246,9 @@ def proc_table_access_table(opts: argparse.Namespace, g: Dataset) -> int:
             continue
         nelements = proc_table_access_row(queries, e, g)
         if nelements:
-            print(f" {nelements} processed")
+            print(f" {nelements} elements processed")
             dump_as_rdf(g, e.c_table_cd)
-            if FIRST_MATCH:
+            if ONE_TABLE:
                 break
     else:
         nelements = 0

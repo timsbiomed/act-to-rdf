@@ -5,11 +5,11 @@ from typing import Dict
 
 DEBUG = False
 
-code_re: Dict[str, re.Pattern] = {'CPT4': re.compile(r'[0-9]+$'),
+code_re: Dict[str, re.Pattern] = {'CPT4': re.compile(r'[0-9]+[A-Z]?$'),
                                   'HCPCS': re.compile(r'[A-Z0-9]+$'),
-                                  'ICD10CM': re.compile(r'[A-Z][0-9][0-9](\.[0-9]+)?$'),
+                                  'ICD10CM': re.compile(r'[A-Z][0-9][0-9A-Z](\.[0-9A-Z]+)?$'),
                                   'ICD10PCS': re.compile(r'[A-Z0-9]+$'),
-                                  'ICD9CM': re.compile(r'[A-Z][0-9][0-9][0-9]?(\.[0-9]+)?$'),
+                                  'ICD9CM': re.compile(r'[A-Z]?[0-9][0-9][0-9]?(\.[0-9]+)?$'),
                                   'ICD9PROC': re.compile(r'[0-9][0-9](\.[0-9]+)?$'),
                                   'LOINC': re.compile(r'(LP)?[0-9]+-[0-9]$'),
                                   'NDC': re.compile(r'[0-9]{11}$'),
@@ -20,7 +20,7 @@ def is_valid_code(code: str) -> bool:
     if ':' in code:
         ns, name = code.split(':', 1)
         if ns in code_re:
-            if DEBUG and not code_re[ns].match(name):
+            if not code_re[ns].match(name) and (DEBUG or '-' not in code):
                 print(f"Code is not valid: {code}")
             return bool(code_re[ns].match(name))
         else:
