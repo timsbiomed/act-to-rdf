@@ -90,7 +90,8 @@ def get_te_valueset(queries: QueryTexts, te: OntologyEntry) -> Tuple[str, List[s
     if te.c_columndatatype == 'T':
         # Beware of the double escape requirement for percents
         upper_oper = te.c_operator.upper()
-        if not COMPUTE_MEMBERS and upper_oper == 'LIKE' and VisualAttributes(te.c_visualattributes).approximate:
+        if (not COMPUTE_MEMBERS or VisualAttributes(te.c_visualattributes).leaf) and upper_oper == 'LIKE' and VisualAttributes(te.c_visualattributes).approximate:
+            print(f"Approximate leaf {te.c_fullname}")
             oper = te.c_operator
             dimcode = te.c_dimcode.replace('\\', '\\\\') + "%%"
         else:
@@ -227,11 +228,10 @@ def dump_as_rdf(g: Dataset, table_name: str) -> bool:
     return True
 
 
-def proc_table_access_table(opts: argparse.Namespace, g: Dataset) -> int:
+def proc_table_access_table(opts: argparse.Namespace) -> int:
     """
     Iterate over the table_access table emitting its entries
     :param opts: function arguments
-    :param g: graph to emit to
     :return: Graph
     """
     logging.info("Iterating over table_access table")
@@ -244,6 +244,7 @@ def proc_table_access_table(opts: argparse.Namespace, g: Dataset) -> int:
         if not e.c_table_cd.startswith(TABLE_PREFIX) or e.c_table_cd in SKIP_TABLES:
             print(" skipped")
             continue
+        g = Dataset()
         nelements = proc_table_access_row(queries, e, g)
         if nelements:
             print(f" {nelements} elements processed")
@@ -267,8 +268,7 @@ def list_table_access(argv: List[str]) -> bool:
         return False
 
     # Convert the tables to RDF
-    g = Dataset()
-    proc_table_access_table(opts, g)
+    proc_table_access_table(opts)
 
 
 if __name__ == "__main__":
