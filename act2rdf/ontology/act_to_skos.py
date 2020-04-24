@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 import sys
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Any
 
 from i2b2model.metadata.i2b2ontology import OntologyEntry
 from i2b2model.metadata.i2b2ontologyvisualattributes import VisualAttributes
@@ -20,7 +20,16 @@ from act2rdf import DATA_DIR
 from namespaces_and_uris import code_to_uri, namespaces
 from ontology.codesystem_membership import is_valid_code
 
-ACT = namespaces['ACT']
+
+class ACTMETA(type):
+    def __getitem__(self, code: str) -> URIRef:
+        return namespaces['ACT'][code.replace(' ', '_').replace('|', '%7C')]
+
+
+class ACT(metaclass=ACTMETA):
+    pass
+
+
 ISO = namespaces['iso-11179']
 
 # Parameters -- these should really be put on the command line
@@ -104,7 +113,12 @@ def get_te_valueset(queries: QueryTexts, te: OntologyEntry) -> Tuple[str, List[s
     if DEBUG:
         print(querytext)
     qr = list(queries.crc_session.execute(querytext))
-    return te.c_columnname, [e[0] for e in qr], [e[0] for e in qr if e[1] == te.c_dimcode]
+
+    def clean(e: Any) -> Any:
+        ent = e[0]
+        return ent.strip() if isinstance(ent, str) else ent
+
+    return te.c_columnname, [clean(e) for e in qr], [clean(e) for e in qr if e[1] == te.c_dimcode]
 
 
 def evaluate_ontology_entry(queries: QueryTexts, te: OntologyEntry, cid: URIRef, g: Dataset) -> None:
@@ -183,7 +197,7 @@ def proc_table_access_row(queries: QueryTexts, ta: TableAccess, g: Dataset) -> i
     g.add((concept_scheme, RDF.type, SKOS.ConceptScheme))
     g.add((concept_scheme, RDF.type, OWL.Ontology))
     g.add((concept_scheme, OWL.versionIRI, concept_scheme_version))
-    return proc_ontology_table(queries, ta.c_table_name, concept_scheme, ta.c_fullname, g)
+    return proc_ontology_table(queries, ta.c_table_name, concept_scheme, ta.c_fullname, g) if ta.c_table_name == 'concept_dimension' else 0
 
 
 def parse_args(argv: List[str]) -> Optional[argparse.Namespace]:

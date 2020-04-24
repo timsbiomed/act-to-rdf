@@ -22,6 +22,7 @@ namespaces = {
     'LOINC': Namespace('http://purl.bioontology.org/ontology/LNC/'),
     'OWL': OWL,
     'SKOS': SKOS,
+    'UMLS': Namespace('https://uts-ws.nlm.nih.gov/'),
     'iso-11179': Namespace("http://www.iso.org/11179/")
 }
 UNKNOWN = Namespace('http://UNKNOWN.NS/')

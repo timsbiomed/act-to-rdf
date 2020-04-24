@@ -13,7 +13,8 @@ code_re: Dict[str, re.Pattern] = {'CPT4': re.compile(r'[0-9]+[A-Z]?$'),
                                   'ICD9PROC': re.compile(r'[0-9][0-9](\.[0-9]+)?$'),
                                   'LOINC': re.compile(r'(LP)?[0-9]+-[0-9]$'),
                                   'NDC': re.compile(r'[0-9]{11}$'),
-                                  'RXNORM': re.compile(r'[0-9]+$')}
+                                  'RXNORM': re.compile(r'[0-9]+$'),
+                                  'UMLS': re.compile(r'C[0-9]+$')}
 
 
 def is_valid_code(code: str) -> bool:
